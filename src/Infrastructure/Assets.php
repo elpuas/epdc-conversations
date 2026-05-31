@@ -10,6 +10,9 @@ declare( strict_types=1 );
 namespace EPDC\Conversations\Infrastructure;
 
 final class Assets implements ServiceInterface {
+	public const STYLE_HANDLE  = 'epdc-conversations-frontend';
+	public const SCRIPT_HANDLE = 'epdc-conversations-frontend';
+
 	/**
 	 * Plugin file path.
 	 *
@@ -29,14 +32,14 @@ final class Assets implements ServiceInterface {
 		$base_url = plugin_dir_url( $this->plugin_file ) . 'assets/';
 
 		wp_register_style(
-			'epdc-conversations-frontend',
+			self::STYLE_HANDLE,
 			$base_url . 'css/frontend.css',
 			[],
 			'0.1.0'
 		);
 
 		wp_register_script(
-			'epdc-conversations-frontend',
+			self::SCRIPT_HANDLE,
 			$base_url . 'js/frontend.js',
 			[],
 			'0.1.0',

@@ -1,1 +1,119 @@
-/* Frontend styles placeholder for EPDC Conversations. */
+.epdc-conversations {
+	--epdc-conversations-bg: #1f9d55;
+	--epdc-conversations-bg-hover: #157347;
+	--epdc-conversations-text: #ffffff;
+	--epdc-conversations-shadow: 0 18px 40px rgb(4 38 22 / 22%);
+	--epdc-conversations-ring: #0f5132;
+
+	font-family: inherit;
+}
+
+.epdc-conversations--floating {
+	position: fixed;
+	inset-block-end: 1rem;
+	z-index: 9999;
+	max-inline-size: calc(100vw - 2rem);
+}
+
+.epdc-conversations--bottom-right {
+	inset-inline-end: 1rem;
+}
+
+.epdc-conversations--bottom-left {
+	inset-inline-start: 1rem;
+}
+
+.epdc-conversations--inline {
+	display: inline-flex;
+	max-inline-size: 100%;
+}
+
+.epdc-conversations__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	min-block-size: 3.5rem;
+	padding: 0.875rem 1.125rem;
+	border-radius: 999px;
+	background: var(--epdc-conversations-bg);
+	box-shadow: var(--epdc-conversations-shadow);
+	color: var(--epdc-conversations-text);
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-decoration: none;
+	transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.epdc-conversations__link:hover,
+.epdc-conversations__link:focus-visible {
+	background: var(--epdc-conversations-bg-hover);
+	color: var(--epdc-conversations-text);
+}
+
+.epdc-conversations__link:hover {
+	transform: translateY(-1px);
+}
+
+.epdc-conversations__link:focus-visible {
+	outline: 3px solid var(--epdc-conversations-ring);
+	outline-offset: 3px;
+	box-shadow: 0 0 0 4px rgb(255 255 255 / 80%), var(--epdc-conversations-shadow);
+}
+
+.epdc-conversations__icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+}
+
+.epdc-conversations__icon svg {
+	inline-size: 100%;
+	block-size: 100%;
+}
+
+.epdc-conversations__label {
+	display: inline-block;
+	max-inline-size: 20ch;
+	overflow-wrap: anywhere;
+}
+
+@media (max-width: 781px) {
+	.epdc-conversations--floating {
+		inset-block-end: 0.75rem;
+	}
+
+	.epdc-conversations--bottom-right,
+	.epdc-conversations--bottom-left {
+		inset-inline: 0.75rem;
+	}
+
+	.epdc-conversations__link {
+		inline-size: 100%;
+		justify-content: center;
+		padding-inline: 1rem;
+	}
+
+	.epdc-conversations--hide-mobile {
+		display: none;
+	}
+}
+
+@media (min-width: 782px) {
+	.epdc-conversations--hide-desktop {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.epdc-conversations__link {
+		transition: none;
+	}
+
+	.epdc-conversations__link:hover {
+		transform: none;
+	}
+}
