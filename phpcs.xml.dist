@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<ruleset name="EPDC Conversations">
+  <description>WordPress coding standards for EPDC Conversations.</description>
+
+  <file>epdc-conversations.php</file>
+  <file>src</file>
+  <file>includes</file>
+
+  <arg name="basepath" value="."/>
+  <arg name="extensions" value="php"/>
+  <arg value="sp"/>
+
+  <rule ref="WordPress-Core"/>
+  <rule ref="WordPress-Docs"/>
+  <rule ref="WordPress-Extra"/>
+  <rule ref="PHPCompatibilityWP">
+    <properties>
+      <property name="testVersion" value="8.3-"/>
+    </properties>
+  </rule>
+</ruleset>
