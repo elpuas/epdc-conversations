@@ -89,7 +89,11 @@ final class MessageParser {
 	 * Get the current request URL.
 	 */
 	private function get_current_url(): string {
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( (string) $_SERVER['REQUEST_URI'] ) : '/';
+		$request_uri = '/';
+
+		if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+			$request_uri = sanitize_text_field( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) );
+		}
 
 		return esc_url_raw( home_url( $request_uri ) );
 	}

@@ -13,21 +13,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$class_name = isset( $args['classes'] ) && is_array( $args['classes'] )
+$epdc_conversations_class_name = isset( $args['classes'] ) && is_array( $args['classes'] )
 	? implode( ' ', array_map( 'sanitize_html_class', $args['classes'] ) )
 	: 'epdc-conversations';
 
-$target = ! empty( $args['new_tab'] ) ? '_blank' : '';
-$rel    = ! empty( $args['new_tab'] ) ? 'noopener noreferrer' : '';
+$epdc_conversations_target = ! empty( $args['new_tab'] ) ? '_blank' : '';
+$epdc_conversations_rel    = ! empty( $args['new_tab'] ) ? 'noopener noreferrer' : '';
 ?>
-<div class="<?php echo esc_attr( $class_name ); ?>" data-epdc-conversations>
+<div class="<?php echo esc_attr( $epdc_conversations_class_name ); ?>" data-epdc-conversations>
 	<a
 		class="epdc-conversations__link"
 		href="<?php echo esc_url( (string) $args['url'] ); ?>"
 		aria-label="<?php echo esc_attr( (string) $args['aria_label'] ); ?>"
-		<?php if ( '' !== $target ) : ?>
-			target="<?php echo esc_attr( $target ); ?>"
-			rel="<?php echo esc_attr( $rel ); ?>"
+		<?php if ( '' !== $epdc_conversations_target ) : ?>
+			target="<?php echo esc_attr( $epdc_conversations_target ); ?>"
+			rel="<?php echo esc_attr( $epdc_conversations_rel ); ?>"
 		<?php endif; ?>
 	>
 		<span class="epdc-conversations__icon" aria-hidden="true">

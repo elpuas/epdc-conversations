@@ -1,11 +1,11 @@
 === EPDC Conversations ===
 Contributors: epdc
 Requires at least: 6.6
-Tested up to: 6.6
+Tested up to: 7.0
 Requires PHP: 8.3
 Stable tag: 0.1.0
-License: Proprietary
-License URI: https://example.com
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 EPDC Conversations provides a lightweight, conversion-oriented foundation for WhatsApp CTA workflows.
 
