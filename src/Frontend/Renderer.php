@@ -45,7 +45,7 @@ final class Renderer implements ServiceInterface {
 			return;
 		}
 
-		echo $this->render_button( [], true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $this->render_button( [], true, 'floating' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
@@ -62,7 +62,16 @@ final class Renderer implements ServiceInterface {
 			'epdc_conversations'
 		);
 
-		return $this->render_button( $atts, false );
+		return $this->render_button( $atts, false, 'shortcode' );
+	}
+
+	/**
+	 * Block renderer.
+	 *
+	 * @param array<string, mixed> $attributes Block attributes.
+	 */
+	public function render_block( array $attributes = [] ): string {
+		return $this->render_button( $attributes, false, 'block' );
 	}
 
 	/**
@@ -71,8 +80,8 @@ final class Renderer implements ServiceInterface {
 	 * @param array<string, mixed> $overrides Button overrides.
 	 * @param bool                 $is_floating Whether this instance is floating.
 	 */
-	private function render_button( array $overrides, bool $is_floating ): string {
-		$args = $this->build_button_args( $overrides, $is_floating );
+	private function render_button( array $overrides, bool $is_floating, string $source ): string {
+		$args = $this->build_button_args( $overrides, $is_floating, $source );
 
 		if ( ! $this->should_render( $args ) ) {
 			return '';
@@ -81,7 +90,7 @@ final class Renderer implements ServiceInterface {
 		wp_enqueue_style( Assets::STYLE_HANDLE );
 		wp_enqueue_script( Assets::SCRIPT_HANDLE );
 
-		$this->tracking_service->register_placeholder_event( $is_floating ? 'floating_button_rendered' : 'shortcode_button_rendered' );
+		$this->tracking_service->register_placeholder_event( $is_floating ? 'floating_button_rendered' : $source . '_button_rendered' );
 
 		ob_start();
 		require dirname( __DIR__, 2 ) . '/templates/frontend-button.php';
@@ -95,12 +104,13 @@ final class Renderer implements ServiceInterface {
 	 * @param bool                 $is_floating Whether the button is floating.
 	 * @return array<string, mixed>
 	 */
-	private function build_button_args( array $overrides, bool $is_floating ): array {
+	private function build_button_args( array $overrides, bool $is_floating, string $source ): array {
 		$settings = $this->settings->get_all();
 		$context  = [
 			'post_id'     => get_the_ID(),
 			'is_floating' => $is_floating,
 			'overrides'   => $overrides,
+			'source'      => $source,
 		];
 
 		$raw_message = isset( $overrides['message'] ) && '' !== trim( (string) $overrides['message'] )
@@ -118,13 +128,33 @@ final class Renderer implements ServiceInterface {
 		$message = (string) apply_filters( 'epdc_conversations_message', $message, $context );
 
 		$position = 'bottom-left' === $settings['button_position'] ? 'bottom-left' : 'bottom-right';
-		$phone    = preg_replace( '/\D+/', '', (string) $settings['phone_number'] ) ?? '';
+		$variant  = isset( $overrides['variant'] ) ? (string) $overrides['variant'] : 'default';
+		$variant  = in_array( $variant, [ 'default', 'inline', 'compact' ], true ) ? $variant : 'default';
+
+		$label = isset( $overrides['label'] ) && '' !== trim( (string) $overrides['label'] )
+			? (string) $overrides['label']
+			: (string) $settings['button_label'];
+
+		$phone_override = isset( $overrides['phoneNumber'] ) && '' !== trim( (string) $overrides['phoneNumber'] )
+			? (string) $overrides['phoneNumber']
+			: (string) $settings['phone_number'];
+		$phone          = preg_replace( '/\D+/', '', $phone_override ) ?? '';
+
+		$new_tab = array_key_exists( 'newTab', $overrides )
+			? ! empty( $overrides['newTab'] )
+			: ! empty( $settings['open_in_new_tab'] );
+
+		$show_icon = ! ( array_key_exists( 'showIcon', $overrides ) && empty( $overrides['showIcon'] ) );
 
 		$classes = [
 			'epdc-conversations',
 			$is_floating ? 'epdc-conversations--floating' : 'epdc-conversations--inline',
 			'epdc-conversations--' . $position,
 		];
+
+		if ( ! $is_floating ) {
+			$classes[] = 'epdc-conversations--variant-' . $variant;
+		}
 
 		if ( empty( $settings['show_on_mobile'] ) ) {
 			$classes[] = 'epdc-conversations--hide-mobile';
@@ -146,15 +176,18 @@ final class Renderer implements ServiceInterface {
 			'aria_label' => sprintf(
 				/* translators: %s: button label. */
 				__( 'Open WhatsApp conversation: %s', 'epdc-conversations' ),
-				(string) $settings['button_label']
+				$label
 			),
 			'classes'    => array_values( array_filter( array_map( 'sanitize_html_class', (array) $classes ) ) ),
+			'source'     => $source,
+			'variant'    => $variant,
 			'is_floating' => $is_floating,
-			'label'      => (string) $settings['button_label'],
+			'label'      => $label,
 			'message'    => $message,
-			'new_tab'    => ! empty( $settings['open_in_new_tab'] ),
+			'new_tab'    => $new_tab,
 			'phone'      => $phone,
 			'position'   => $position,
+			'show_icon'  => $show_icon,
 			'url'        => $this->build_whatsapp_url( $phone, $message ),
 		];
 
