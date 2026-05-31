@@ -1,6 +1,6 @@
 <?php
 /**
- * Frontend renderer placeholder.
+ * Frontend renderer.
  *
  * @package EPDC\Conversations\Frontend
  */
@@ -9,42 +9,207 @@ declare( strict_types=1 );
 
 namespace EPDC\Conversations\Frontend;
 
+use EPDC\Conversations\Infrastructure\Assets;
 use EPDC\Conversations\Infrastructure\ServiceInterface;
+use EPDC\Conversations\Infrastructure\Settings;
 use EPDC\Conversations\Messaging\MessageParser;
 use EPDC\Conversations\Tracking\TrackingService;
 
 final class Renderer implements ServiceInterface {
+	private Settings $settings;
 	private MessageParser $message_parser;
 	private TrackingService $tracking_service;
 
-	public function __construct( MessageParser $message_parser, TrackingService $tracking_service ) {
+	public function __construct( Settings $settings, MessageParser $message_parser, TrackingService $tracking_service ) {
+		$this->settings         = $settings;
 		$this->message_parser   = $message_parser;
 		$this->tracking_service = $tracking_service;
 	}
 
 	public function register(): void {
 		add_shortcode( 'epdc_conversations', [ $this, 'render_shortcode' ] );
+		add_action( 'wp_footer', [ $this, 'render_floating_button' ] );
 	}
 
 	/**
-	 * Shortcode renderer placeholder.
+	 * Render the site-wide floating button.
+	 */
+	public function render_floating_button(): void {
+		if ( is_admin() ) {
+			return;
+		}
+
+		$settings = $this->settings->get_all();
+
+		if ( empty( $settings['enable_floating_button'] ) ) {
+			return;
+		}
+
+		echo $this->render_button( [], true ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * Shortcode renderer.
 	 *
 	 * @param array<string, mixed> $atts Shortcode attributes.
 	 */
 	public function render_shortcode( array $atts = [] ): string {
-		unset( $atts );
+		$atts = shortcode_atts(
+			[
+				'message' => '',
+			],
+			$atts,
+			'epdc_conversations'
+		);
 
-		$message = $this->message_parser->parse( '{site_name}' );
-		$this->tracking_service->register_placeholder_event( 'shortcode_render' );
+		return $this->render_button( $atts, false );
+	}
+
+	/**
+	 * Render a button instance.
+	 *
+	 * @param array<string, mixed> $overrides Button overrides.
+	 * @param bool                 $is_floating Whether this instance is floating.
+	 */
+	private function render_button( array $overrides, bool $is_floating ): string {
+		$args = $this->build_button_args( $overrides, $is_floating );
+
+		if ( ! $this->should_render( $args ) ) {
+			return '';
+		}
+
+		wp_enqueue_style( Assets::STYLE_HANDLE );
+		wp_enqueue_script( Assets::SCRIPT_HANDLE );
+
+		$this->tracking_service->register_placeholder_event( $is_floating ? 'floating_button_rendered' : 'shortcode_button_rendered' );
 
 		ob_start();
 		require dirname( __DIR__, 2 ) . '/templates/frontend-button.php';
-		$output = (string) ob_get_clean();
+		return (string) ob_get_clean();
+	}
 
-		return str_replace(
-			esc_html__( 'EPDC Conversations placeholder output.', 'epdc-conversations' ),
-			esc_html( $message ),
-			$output
-		);
+	/**
+	 * Build button arguments for rendering.
+	 *
+	 * @param array<string, mixed> $overrides Button overrides.
+	 * @param bool                 $is_floating Whether the button is floating.
+	 * @return array<string, mixed>
+	 */
+	private function build_button_args( array $overrides, bool $is_floating ): array {
+		$settings = $this->settings->get_all();
+		$context  = [
+			'post_id'     => get_the_ID(),
+			'is_floating' => $is_floating,
+			'overrides'   => $overrides,
+		];
+
+		$raw_message = isset( $overrides['message'] ) && '' !== trim( (string) $overrides['message'] )
+			? (string) $overrides['message']
+			: (string) $settings['default_message'];
+
+		$message = $this->message_parser->parse( $raw_message, $context );
+
+		/**
+		 * Filter the final WhatsApp message.
+		 *
+		 * @param string               $message Final parsed message.
+		 * @param array<string, mixed> $context Render context.
+		 */
+		$message = (string) apply_filters( 'epdc_conversations_message', $message, $context );
+
+		$position = 'bottom-left' === $settings['button_position'] ? 'bottom-left' : 'bottom-right';
+		$phone    = preg_replace( '/\D+/', '', (string) $settings['phone_number'] ) ?? '';
+
+		$classes = [
+			'epdc-conversations',
+			$is_floating ? 'epdc-conversations--floating' : 'epdc-conversations--inline',
+			'epdc-conversations--' . $position,
+		];
+
+		if ( empty( $settings['show_on_mobile'] ) ) {
+			$classes[] = 'epdc-conversations--hide-mobile';
+		}
+
+		if ( empty( $settings['show_on_desktop'] ) ) {
+			$classes[] = 'epdc-conversations--hide-desktop';
+		}
+
+		/**
+		 * Filter button classes before rendering.
+		 *
+		 * @param string[]             $classes CSS classes.
+		 * @param array<string, mixed> $context Render context.
+		 */
+		$classes = apply_filters( 'epdc_conversations_button_classes', $classes, $context );
+
+		$args = [
+			'aria_label' => sprintf(
+				/* translators: %s: button label. */
+				__( 'Open WhatsApp conversation: %s', 'epdc-conversations' ),
+				(string) $settings['button_label']
+			),
+			'classes'    => array_values( array_filter( array_map( 'sanitize_html_class', (array) $classes ) ) ),
+			'is_floating' => $is_floating,
+			'label'      => (string) $settings['button_label'],
+			'message'    => $message,
+			'new_tab'    => ! empty( $settings['open_in_new_tab'] ),
+			'phone'      => $phone,
+			'position'   => $position,
+			'url'        => $this->build_whatsapp_url( $phone, $message ),
+		];
+
+		/**
+		 * Filter button arguments before template rendering.
+		 *
+		 * @param array<string, mixed> $args Button arguments.
+		 * @param array<string, mixed> $context Render context.
+		 */
+		$args = apply_filters( 'epdc_conversations_button_args', $args, $context );
+
+		if ( ! is_array( $args ) ) {
+			return [];
+		}
+
+		$args['url'] = (string) apply_filters( 'epdc_conversations_url', (string) ( $args['url'] ?? '' ), $args );
+
+		return $args;
+	}
+
+	/**
+	 * Determine whether a button should render.
+	 *
+	 * @param array<string, mixed> $args Button arguments.
+	 */
+	private function should_render( array $args ): bool {
+		if ( empty( $args['phone'] ) || empty( $args['url'] ) ) {
+			return false;
+		}
+
+		if ( empty( $args['label'] ) ) {
+			return false;
+		}
+
+		if ( ! empty( $args['is_floating'] ) && in_array( 'epdc-conversations--hide-mobile', (array) $args['classes'], true ) && in_array( 'epdc-conversations--hide-desktop', (array) $args['classes'], true ) ) {
+			return false;
+		}
+
+		return ! empty( $args['classes'] );
+	}
+
+	/**
+	 * Build the WhatsApp URL.
+	 */
+	private function build_whatsapp_url( string $phone, string $message ): string {
+		if ( '' === $phone ) {
+			return '';
+		}
+
+		$url = 'https://wa.me/' . rawurlencode( $phone );
+
+		if ( '' !== $message ) {
+			$url .= '?text=' . rawurlencode( $message );
+		}
+
+		return esc_url_raw( $url );
 	}
 }
