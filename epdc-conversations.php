@@ -22,6 +22,8 @@ $autoload = __DIR__ . '/vendor/autoload.php';
 
 if ( file_exists( $autoload ) ) {
 	require_once $autoload;
+} else {
+	require_once __DIR__ . '/includes/autoload.php';
 }
 
 if ( ! class_exists( \EPDC\Conversations\Infrastructure\Plugin::class ) ) {
