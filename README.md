@@ -69,6 +69,9 @@ All settings are stored in the `epdc_conversations_options` option.
 - `show_on_desktop`: Controls desktop visibility for the floating CTA.
 - `button_position`: `bottom-right` or `bottom-left`.
 - `button_label`: Visible button text.
+- `button_variant`: `default`, `compact`, or `icon-only`.
+- `button_size`: `small`, `medium`, or `large`.
+- `show_button_icon`: Controls whether the floating CTA includes the WhatsApp icon.
 - `open_in_new_tab`: Opens the WhatsApp URL in a new tab when enabled.
 - `enable_ga_tracking`: Forwards CTA clicks to GA4 when `window.gtag` exists.
 
@@ -85,7 +88,8 @@ All settings are stored in the `epdc_conversations_options` option.
 [epdc_conversations]
 [epdc_conversations message="Hello"]
 [epdc_conversations label="Chat with sales" variant="compact"]
-[epdc_conversations phone_number="50612345678" new_tab="yes" show_icon="no"]
+[epdc_conversations phone_number="50612345678" size="large" new_tab="yes" show_icon="no"]
+[epdc_conversations variant="icon-only" size="small"]
 ```
 
 ### Supported shortcode attributes
@@ -93,7 +97,8 @@ All settings are stored in the `epdc_conversations_options` option.
 - `message`: Message template override.
 - `label`: Visible text override.
 - `phone_number`: WhatsApp number override. Non-digits are stripped before rendering.
-- `variant`: `default`, `inline`, or `compact`.
+- `variant`: `default`, `compact`, or `icon-only`. Legacy `inline` values are normalized to `compact`.
+- `size`: `small`, `medium`, or `large`.
 - `show_icon`: Truthy/falsey string flag. `no`, `false`, `off`, and `0` disable the icon.
 - `new_tab`: Truthy/falsey string flag. `yes`, `true`, `on`, and `1` enable a new tab.
 
@@ -109,6 +114,7 @@ All settings are stored in the `epdc_conversations_options` option.
 - `label`
 - `phoneNumber`
 - `variant`
+- `size`
 - `showIcon`
 - `newTab`
 
@@ -117,6 +123,7 @@ All settings are stored in the `epdc_conversations_options` option.
 - Insert the **EPDC Conversations** block and use plugin defaults.
 - Override the label or message for a single page.
 - Use the `compact` variant inside landing page content.
+- Use the `icon-only` variant for tighter floating or utility-style placements.
 
 ### Dynamic rendering behavior
 
