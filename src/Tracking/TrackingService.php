@@ -14,6 +14,8 @@ use EPDC\Conversations\Infrastructure\ServiceInterface;
 final class TrackingService implements ServiceInterface {
 	private const COOKIE_NAME       = 'epdc_conversations_session';
 	private const COOKIE_EXPIRATION = 2592000;
+	private const MAX_URL_LENGTH    = 2048;
+	private const MAX_UTM_LENGTH    = 100;
 	private const REST_NAMESPACE    = 'epdc-conversations/v1';
 	private const REST_ROUTE        = '/track';
 
@@ -68,24 +70,40 @@ final class TrackingService implements ServiceInterface {
 			[
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => [ $this, 'handle_track_request' ],
-				'permission_callback' => '__return_true',
+				'permission_callback' => [ $this, 'validate_track_request_permissions' ],
 				'args'                => [
 					'event_type'   => [
 						'required'          => true,
 						'type'              => 'string',
 						'sanitize_callback' => 'sanitize_key',
+						'validate_callback' => [ $this, 'validate_event_type' ],
 					],
 					'page_url'     => [
 						'type'              => 'string',
 						'sanitize_callback' => [ $this, 'sanitize_url' ],
+						'validate_callback' => [ $this, 'validate_url' ],
 					],
 					'referrer_url' => [
 						'type'              => 'string',
 						'sanitize_callback' => [ $this, 'sanitize_url' ],
+						'validate_callback' => [ $this, 'validate_url' ],
 					],
 					'device_type'  => [
 						'type'              => 'string',
 						'sanitize_callback' => [ $this, 'sanitize_device_type' ],
+						'validate_callback' => [ $this, 'validate_device_type' ],
+					],
+					'utm_source'   => [
+						'type'              => 'string',
+						'sanitize_callback' => [ $this, 'sanitize_utm_value' ],
+					],
+					'utm_medium'   => [
+						'type'              => 'string',
+						'sanitize_callback' => [ $this, 'sanitize_utm_value' ],
+					],
+					'utm_campaign' => [
+						'type'              => 'string',
+						'sanitize_callback' => [ $this, 'sanitize_utm_value' ],
 					],
 				],
 			]
@@ -96,25 +114,7 @@ final class TrackingService implements ServiceInterface {
 	 * Handle tracking requests.
 	 */
 	public function handle_track_request( \WP_REST_Request $request ): \WP_REST_Response|\WP_Error {
-		$event_type = sanitize_key( (string) $request->get_param( 'event_type' ) );
-
-		if ( ! in_array( $event_type, $this->get_allowed_event_types(), true ) ) {
-			return new \WP_Error(
-				'epdc_conversations_invalid_event_type',
-				esc_html__( 'Event type is not allowed.', 'epdc-conversations' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$payload = [
-			'event_type'   => $event_type,
-			'page_url'     => $this->sanitize_url( (string) $request->get_param( 'page_url' ) ),
-			'referrer_url' => $this->sanitize_url( (string) $request->get_param( 'referrer_url' ) ),
-			'device_type'  => $this->sanitize_device_type( (string) $request->get_param( 'device_type' ) ),
-			'utm_source'   => sanitize_text_field( (string) $request->get_param( 'utm_source' ) ),
-			'utm_medium'   => sanitize_text_field( (string) $request->get_param( 'utm_medium' ) ),
-			'utm_campaign' => sanitize_text_field( (string) $request->get_param( 'utm_campaign' ) ),
-		];
+		$payload = $this->build_tracking_payload( $request );
 
 		/**
 		 * Filter the sanitized tracking payload before insertion.
@@ -127,6 +127,16 @@ final class TrackingService implements ServiceInterface {
 			return new \WP_Error(
 				'epdc_conversations_invalid_payload',
 				esc_html__( 'Tracking payload is invalid.', 'epdc-conversations' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$payload = $this->normalize_tracking_payload( $payload );
+
+		if ( ! $this->validate_event_type( $payload['event_type'] ) ) {
+			return new \WP_Error(
+				'epdc_conversations_invalid_event_type',
+				esc_html__( 'Event type is not allowed.', 'epdc-conversations' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -159,6 +169,27 @@ final class TrackingService implements ServiceInterface {
 	}
 
 	/**
+	 * Validate permissions for public tracking requests.
+	 */
+	public function validate_track_request_permissions( \WP_REST_Request $request ): bool|\WP_Error {
+		$nonce = $request->get_header( 'X-WP-Nonce' );
+
+		if ( ! is_string( $nonce ) || '' === $nonce ) {
+			$nonce = (string) $request->get_param( '_wpnonce' );
+		}
+
+		if ( ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+			return new \WP_Error(
+				'epdc_conversations_invalid_nonce',
+				esc_html__( 'The tracking request could not be verified.', 'epdc-conversations' ),
+				[ 'status' => 403 ]
+			);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Insert event in local database.
 	 *
 	 * @param array<string, mixed> $payload Tracking payload.
@@ -176,11 +207,11 @@ final class TrackingService implements ServiceInterface {
 			'event_type'   => sanitize_key( (string) ( $payload['event_type'] ?? '' ) ),
 			'page_url'     => $this->sanitize_url( (string) ( $payload['page_url'] ?? '' ) ),
 			'referrer_url' => $this->sanitize_url( (string) ( $payload['referrer_url'] ?? '' ) ),
-			'utm_source'   => sanitize_text_field( (string) ( $payload['utm_source'] ?? '' ) ),
-			'utm_medium'   => sanitize_text_field( (string) ( $payload['utm_medium'] ?? '' ) ),
-			'utm_campaign' => sanitize_text_field( (string) ( $payload['utm_campaign'] ?? '' ) ),
+			'utm_source'   => $this->sanitize_utm_value( $payload['utm_source'] ?? '' ),
+			'utm_medium'   => $this->sanitize_utm_value( $payload['utm_medium'] ?? '' ),
+			'utm_campaign' => $this->sanitize_utm_value( $payload['utm_campaign'] ?? '' ),
 			'device_type'  => $this->sanitize_device_type( (string) ( $payload['device_type'] ?? '' ) ),
-			'user_agent'   => substr( sanitize_text_field( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ), 0, 255 ),
+			'user_agent'   => substr( sanitize_text_field( wp_unslash( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ) ), 0, 255 ),
 			'ip_hash'      => '' !== $ip_address ? hash( 'sha256', $ip_address ) : '',
 		];
 
@@ -192,6 +223,7 @@ final class TrackingService implements ServiceInterface {
 		 */
 		$data = apply_filters( 'epdc_conversations_event_insertion_data', $data, $payload );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table insert for plugin-owned data.
 		$inserted = $wpdb->insert(
 			$table_name,
 			$data,
@@ -212,6 +244,10 @@ final class TrackingService implements ServiceInterface {
 
 		if ( false === $inserted ) {
 			return 0;
+		}
+
+		if ( class_exists( '\EPDC\Conversations\Admin\AnalyticsRepository' ) && method_exists( '\EPDC\Conversations\Admin\AnalyticsRepository', 'flush_cache' ) ) {
+			\EPDC\Conversations\Admin\AnalyticsRepository::flush_cache();
 		}
 
 		return (int) $wpdb->insert_id;
@@ -289,7 +325,9 @@ final class TrackingService implements ServiceInterface {
 			return '';
 		}
 
-		return esc_url_raw( $url );
+		$url = substr( $url, 0, self::MAX_URL_LENGTH );
+
+		return esc_url_raw( $url, [ 'http', 'https' ] );
 	}
 
 	/**
@@ -303,6 +341,54 @@ final class TrackingService implements ServiceInterface {
 		}
 
 		return 'unknown';
+	}
+
+	/**
+	 * Sanitize a UTM value before storage.
+	 */
+	public function sanitize_utm_value( mixed $value ): string {
+		$value = sanitize_text_field( is_string( $value ) ? $value : '' );
+
+		if ( '' === $value ) {
+			return '';
+		}
+
+		return substr( $value, 0, self::MAX_UTM_LENGTH );
+	}
+
+	/**
+	 * Validate an allowed event type.
+	 */
+	public function validate_event_type( mixed $value ): bool {
+		$event_type = sanitize_key( is_string( $value ) ? $value : '' );
+
+		return in_array( $event_type, $this->get_allowed_event_types(), true );
+	}
+
+	/**
+	 * Validate a trackable URL value.
+	 */
+	public function validate_url( mixed $value ): bool {
+		$url = is_string( $value ) ? $value : '';
+
+		if ( '' === $url ) {
+			return true;
+		}
+
+		return '' !== $this->sanitize_url( $url );
+	}
+
+	/**
+	 * Validate a supported device type.
+	 */
+	public function validate_device_type( mixed $value ): bool {
+		$device_type = sanitize_key( is_string( $value ) ? $value : '' );
+
+		if ( '' === $device_type ) {
+			return true;
+		}
+
+		return in_array( $device_type, [ 'mobile', 'desktop', 'tablet', 'unknown' ], true );
 	}
 
 	/**
@@ -323,6 +409,41 @@ final class TrackingService implements ServiceInterface {
 	 */
 	private function generate_session_id(): string {
 		return wp_generate_uuid4();
+	}
+
+	/**
+	 * Build a sanitized request payload.
+	 *
+	 * @return array<string, string>
+	 */
+	private function build_tracking_payload( \WP_REST_Request $request ): array {
+		return [
+			'event_type'   => sanitize_key( (string) $request->get_param( 'event_type' ) ),
+			'page_url'     => $this->sanitize_url( (string) $request->get_param( 'page_url' ) ),
+			'referrer_url' => $this->sanitize_url( (string) $request->get_param( 'referrer_url' ) ),
+			'device_type'  => $this->sanitize_device_type( (string) $request->get_param( 'device_type' ) ),
+			'utm_source'   => $this->sanitize_utm_value( $request->get_param( 'utm_source' ) ),
+			'utm_medium'   => $this->sanitize_utm_value( $request->get_param( 'utm_medium' ) ),
+			'utm_campaign' => $this->sanitize_utm_value( $request->get_param( 'utm_campaign' ) ),
+		];
+	}
+
+	/**
+	 * Normalize a filtered payload before database insertion.
+	 *
+	 * @param array<string, mixed> $payload Filtered payload.
+	 * @return array<string, string>
+	 */
+	private function normalize_tracking_payload( array $payload ): array {
+		return [
+			'event_type'   => sanitize_key( (string) ( $payload['event_type'] ?? '' ) ),
+			'page_url'     => $this->sanitize_url( $payload['page_url'] ?? '' ),
+			'referrer_url' => $this->sanitize_url( $payload['referrer_url'] ?? '' ),
+			'device_type'  => $this->sanitize_device_type( $payload['device_type'] ?? '' ),
+			'utm_source'   => $this->sanitize_utm_value( $payload['utm_source'] ?? '' ),
+			'utm_medium'   => $this->sanitize_utm_value( $payload['utm_medium'] ?? '' ),
+			'utm_campaign' => $this->sanitize_utm_value( $payload['utm_campaign'] ?? '' ),
+		];
 	}
 
 	/**

@@ -33,15 +33,14 @@ final class Plugin {
 	private array $services;
 
 	public function __construct( string $plugin_file ) {
-		$settings         = new Settings();
-		$message_parser   = new MessageParser();
-		$tracking_service = new TrackingService();
+		$settings             = new Settings();
+		$message_parser       = new MessageParser();
+		$tracking_service     = new TrackingService();
 		$analytics_repository = new AnalyticsRepository();
-		$renderer         = new Renderer( $settings, $message_parser );
+		$renderer             = new Renderer( $settings, $message_parser );
 
 		$this->plugin_file = $plugin_file;
 		$this->services    = [
-			new I18n( $this->plugin_file ),
 			new Assets( $this->plugin_file, $settings, $tracking_service ),
 			new SettingsPage( $settings ),
 			new AnalyticsPage( $analytics_repository ),

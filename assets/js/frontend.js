@@ -24,7 +24,13 @@
 	function buildPayload(linkElement) {
 		const currentUrl = window.location.href || '';
 		const referrerUrl = document.referrer || '';
-		const url = new URL(currentUrl);
+		let url;
+
+		try {
+			url = new URL(currentUrl);
+		} catch {
+			url = new URL(window.location.origin);
+		}
 
 		return {
 			event_type: linkElement.dataset.epdcConversationsEvent || 'whatsapp_click',
@@ -38,7 +44,7 @@
 	}
 
 	function sendTracking(payload) {
-		if (!trackingConfig.restUrl) {
+		if (!trackingConfig.restUrl || typeof window.fetch !== 'function') {
 			return;
 		}
 
@@ -56,7 +62,7 @@
 		});
 	}
 
-	function maybeSendGaEvent(payload) {
+	function maybeSendGaEvent() {
 		if (!trackingConfig.gaEnabled || typeof window.gtag !== 'function') {
 			return;
 		}
@@ -90,7 +96,7 @@
 		const payload = buildPayload(link);
 
 		sendTracking(payload);
-		maybeSendGaEvent(payload);
+		maybeSendGaEvent();
 	});
 
 	document.querySelectorAll('[data-epdc-conversations]').forEach((button) => {

@@ -57,13 +57,27 @@ final class Renderer implements ServiceInterface {
 	public function render_shortcode( array $atts = [] ): string {
 		$atts = shortcode_atts(
 			[
-				'message' => '',
+				'message'      => '',
+				'label'        => '',
+				'phone_number' => '',
+				'variant'      => 'default',
+				'show_icon'    => 'yes',
+				'new_tab'      => '',
 			],
 			$atts,
 			'epdc_conversations'
 		);
 
-		return $this->render_button( $atts, false, 'shortcode' );
+		$normalized_atts = [
+			'message'     => sanitize_textarea_field( (string) $atts['message'] ),
+			'label'       => sanitize_text_field( (string) $atts['label'] ),
+			'phoneNumber' => preg_replace( '/\D+/', '', (string) $atts['phone_number'] ) ?? '',
+			'variant'     => sanitize_key( (string) $atts['variant'] ),
+			'showIcon'    => ! in_array( strtolower( (string) $atts['show_icon'] ), [ '0', 'false', 'no', 'off' ], true ),
+			'newTab'      => in_array( strtolower( (string) $atts['new_tab'] ), [ '1', 'true', 'yes', 'on' ], true ),
+		];
+
+		return $this->render_button( $normalized_atts, false, 'shortcode' );
 	}
 
 	/**
@@ -172,22 +186,22 @@ final class Renderer implements ServiceInterface {
 		$classes = apply_filters( 'epdc_conversations_button_classes', $classes, $context );
 
 		$args = [
-			'aria_label' => sprintf(
+			'aria_label'  => sprintf(
 				/* translators: %s: button label. */
 				__( 'Open WhatsApp conversation: %s', 'epdc-conversations' ),
 				$label
 			),
-			'classes'    => array_values( array_filter( array_map( 'sanitize_html_class', (array) $classes ) ) ),
-			'source'     => $source,
-			'variant'    => $variant,
+			'classes'     => array_values( array_filter( array_map( 'sanitize_html_class', (array) $classes ) ) ),
+			'source'      => $source,
+			'variant'     => $variant,
 			'is_floating' => $is_floating,
-			'label'      => $label,
-			'message'    => $message,
-			'new_tab'    => $new_tab,
-			'phone'      => $phone,
-			'position'   => $position,
-			'show_icon'  => $show_icon,
-			'url'        => $this->build_whatsapp_url( $phone, $message ),
+			'label'       => $label,
+			'message'     => $message,
+			'new_tab'     => $new_tab,
+			'phone'       => $phone,
+			'position'    => $position,
+			'show_icon'   => $show_icon,
+			'url'         => $this->build_whatsapp_url( $phone, $message ),
 		];
 
 		/**
@@ -204,7 +218,7 @@ final class Renderer implements ServiceInterface {
 
 		$args['url'] = (string) apply_filters( 'epdc_conversations_url', (string) ( $args['url'] ?? '' ), $args );
 
-		return $args;
+		return $this->normalize_button_args( $args );
 	}
 
 	/**
@@ -269,5 +283,40 @@ final class Renderer implements ServiceInterface {
 		}
 
 		return esc_url_raw( $url );
+	}
+
+	/**
+	 * Normalize filtered button arguments before template rendering.
+	 *
+	 * @param array<string, mixed> $args Raw button arguments.
+	 * @return array<string, mixed>
+	 */
+	private function normalize_button_args( array $args ): array {
+		$variant = isset( $args['variant'] ) ? sanitize_key( (string) $args['variant'] ) : 'default';
+
+		if ( ! in_array( $variant, [ 'default', 'inline', 'compact' ], true ) ) {
+			$variant = 'default';
+		}
+
+		$position = isset( $args['position'] ) && 'bottom-left' === $args['position'] ? 'bottom-left' : 'bottom-right';
+		$phone    = isset( $args['phone'] ) ? preg_replace( '/\D+/', '', (string) $args['phone'] ) : '';
+		$message  = isset( $args['message'] ) ? wp_strip_all_tags( (string) $args['message'] ) : '';
+		$label    = isset( $args['label'] ) ? sanitize_text_field( (string) $args['label'] ) : '';
+		$url      = isset( $args['url'] ) ? esc_url_raw( (string) $args['url'], [ 'https' ] ) : '';
+
+		return [
+			'aria_label'  => isset( $args['aria_label'] ) ? sanitize_text_field( (string) $args['aria_label'] ) : '',
+			'classes'     => isset( $args['classes'] ) && is_array( $args['classes'] ) ? array_values( array_filter( array_map( 'sanitize_html_class', $args['classes'] ) ) ) : [],
+			'is_floating' => ! empty( $args['is_floating'] ),
+			'label'       => $label,
+			'message'     => $message,
+			'new_tab'     => ! empty( $args['new_tab'] ),
+			'phone'       => $phone ?? '',
+			'position'    => $position,
+			'show_icon'   => ! isset( $args['show_icon'] ) || ! empty( $args['show_icon'] ),
+			'source'      => isset( $args['source'] ) ? sanitize_key( (string) $args['source'] ) : 'unknown',
+			'url'         => $url,
+			'variant'     => $variant,
+		];
 	}
 }

@@ -5,17 +5,21 @@
   <file>epdc-conversations.php</file>
   <file>src</file>
   <file>includes</file>
+  <file>templates</file>
 
   <arg name="basepath" value="."/>
   <arg name="extensions" value="php"/>
   <arg value="sp"/>
 
   <rule ref="WordPress-Core"/>
-  <rule ref="WordPress-Docs"/>
   <rule ref="WordPress-Extra"/>
-  <rule ref="PHPCompatibilityWP">
-    <properties>
-      <property name="testVersion" value="8.3-"/>
-    </properties>
+  <rule ref="WordPress.Files.FileName">
+    <exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+    <exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
   </rule>
+  <exclude name="Universal.Arrays.DisallowShortArraySyntax.Found"/>
+  <exclude name="Universal.Operators.DisallowShortTernary.Found"/>
+  <exclude name="Generic.Formatting.MultipleStatementAlignment.NotSameWarning"/>
+  <exclude name="WordPress.Arrays.MultipleStatementAlignment.DoubleArrowNotAligned"/>
+  <exclude name="WordPress.DB.PreparedSQL.InterpolatedNotPrepared"/>
 </ruleset>

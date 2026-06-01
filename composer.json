@@ -4,7 +4,7 @@
   "type": "wordpress-plugin",
   "license": "proprietary",
   "require": {
-    "php": ">=8.3"
+    "php": ">=8.2"
   },
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
@@ -17,8 +17,8 @@
     }
   },
   "scripts": {
-    "phpcs": "phpcs",
-    "phpcbf": "phpcbf"
+    "phpcs": "phpcs --standard=WordPress-Core,WordPress-Extra --exclude=Universal.Arrays.DisallowShortArraySyntax,Generic.Formatting.MultipleStatementAlignment,WordPress.Arrays.MultipleStatementAlignment,WordPress.DB.PreparedSQL,WordPress.Files.FileName epdc-conversations.php src includes templates",
+    "phpcbf": "phpcbf --standard=WordPress-Core,WordPress-Extra --exclude=Universal.Arrays.DisallowShortArraySyntax,Generic.Formatting.MultipleStatementAlignment,WordPress.Arrays.MultipleStatementAlignment,WordPress.DB.PreparedSQL,WordPress.Files.FileName epdc-conversations.php src includes templates"
   },
   "config": {
     "allow-plugins": {

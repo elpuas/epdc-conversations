@@ -40,19 +40,20 @@ final class Assets implements ServiceInterface {
 	 */
 	public function register_assets(): void {
 		$base_url = plugin_dir_url( $this->plugin_file ) . 'assets/';
+		$base_dir = plugin_dir_path( $this->plugin_file ) . 'assets/';
 
 		wp_register_style(
 			self::STYLE_HANDLE,
 			$base_url . 'css/frontend.css',
 			[],
-			(string) filemtime( plugin_dir_path( $this->plugin_file ) . 'assets/css/frontend.css' )
+			$this->get_asset_version( $base_dir . 'css/frontend.css' )
 		);
 
 		wp_register_script(
 			self::SCRIPT_HANDLE,
 			$base_url . 'js/frontend.js',
 			[],
-			(string) filemtime( plugin_dir_path( $this->plugin_file ) . 'assets/js/frontend.js' ),
+			$this->get_asset_version( $base_dir . 'js/frontend.js' ),
 			true
 		);
 
@@ -63,5 +64,16 @@ final class Assets implements ServiceInterface {
 			'epdcConversationsTracking',
 			$frontend_config
 		);
+	}
+
+	/**
+	 * Resolve a stable asset version string.
+	 */
+	private function get_asset_version( string $asset_path ): string {
+		if ( file_exists( $asset_path ) ) {
+			return (string) filemtime( $asset_path );
+		}
+
+		return defined( 'EPDC_CONVERSATIONS_VERSION' ) ? EPDC_CONVERSATIONS_VERSION : '0.1.0';
 	}
 }
