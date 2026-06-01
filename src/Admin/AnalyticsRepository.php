@@ -19,7 +19,7 @@ final class AnalyticsRepository {
 		global $wpdb;
 
 		$table_name      = $wpdb->prefix . 'epdc_conversation_events';
-		$current_time    = current_time( 'timestamp', true );
+		$current_time    = time();
 		$today_start     = gmdate( 'Y-m-d 00:00:00', $current_time );
 		$last_seven_days = gmdate( 'Y-m-d H:i:s', $current_time - ( 7 * DAY_IN_SECONDS ) );
 		$last_thirty     = gmdate( 'Y-m-d H:i:s', $current_time - ( 30 * DAY_IN_SECONDS ) );
@@ -38,6 +38,7 @@ final class AnalyticsRepository {
 			'whatsapp_click'
 		);
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
 		$result = $wpdb->get_row( $sql, ARRAY_A );
 
 		$metrics = [
@@ -95,6 +96,7 @@ final class AnalyticsRepository {
 		$start_date = isset( $args['start_date'] ) ? (string) $args['start_date'] : '';
 
 		if ( '' !== $start_date ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
 			$sql = $wpdb->prepare(
 				"SELECT
 					page_url,
@@ -112,6 +114,7 @@ final class AnalyticsRepository {
 				$limit
 			);
 		} else {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
 			$sql = $wpdb->prepare(
 				"SELECT
 					page_url,
@@ -128,6 +131,7 @@ final class AnalyticsRepository {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 
 		return is_array( $results ) ? $results : [];
@@ -166,6 +170,7 @@ final class AnalyticsRepository {
 		$start_date = isset( $args['start_date'] ) ? (string) $args['start_date'] : '';
 
 		if ( '' !== $start_date ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
 			$sql = $wpdb->prepare(
 				"SELECT
 					created_at,
@@ -184,6 +189,7 @@ final class AnalyticsRepository {
 				$limit
 			);
 		} else {
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
 			$sql = $wpdb->prepare(
 				"SELECT
 					created_at,
@@ -201,6 +207,7 @@ final class AnalyticsRepository {
 			);
 		}
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 
 		return is_array( $results ) ? $results : [];
@@ -210,7 +217,7 @@ final class AnalyticsRepository {
 	 * Resolve a UTC start date for a supported range.
 	 */
 	private function get_start_date_for_range( string $range ): string {
-		$current_time = current_time( 'timestamp', true );
+		$current_time = time();
 
 		return match ( $range ) {
 			'today' => gmdate( 'Y-m-d 00:00:00', $current_time ),

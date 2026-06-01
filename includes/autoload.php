@@ -12,14 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 spl_autoload_register(
-	static function ( string $class ): void {
+	static function ( string $fqcn ): void {
 		$prefix = 'EPDC\\Conversations\\';
 
-		if ( ! str_starts_with( $class, $prefix ) ) {
+		if ( ! str_starts_with( $fqcn, $prefix ) ) {
 			return;
 		}
 
-		$relative_class = substr( $class, strlen( $prefix ) );
+		$relative_class = substr( $fqcn, strlen( $prefix ) );
 
 		if ( false === $relative_class ) {
 			return;

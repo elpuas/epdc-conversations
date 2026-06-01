@@ -172,6 +172,12 @@ final class SettingsPage implements ServiceInterface {
 			$position = 'bottom-right';
 		}
 
+		$button_label = sanitize_text_field( (string) ( $input['button_label'] ?? '' ) );
+
+		if ( '' === $button_label ) {
+			$button_label = (string) $defaults['button_label'];
+		}
+
 		return [
 			'phone_number'           => preg_replace( '/\D+/', '', (string) ( $input['phone_number'] ?? '' ) ) ?? '',
 			'default_message'        => sanitize_textarea_field( (string) ( $input['default_message'] ?? '' ) ),
@@ -179,7 +185,7 @@ final class SettingsPage implements ServiceInterface {
 			'show_on_mobile'         => ! empty( $input['show_on_mobile'] ),
 			'show_on_desktop'        => ! empty( $input['show_on_desktop'] ),
 			'button_position'        => $position,
-			'button_label'           => sanitize_text_field( (string) ( $input['button_label'] ?? '' ) ) ?: (string) $defaults['button_label'],
+			'button_label'           => $button_label,
 			'open_in_new_tab'        => ! empty( $input['open_in_new_tab'] ),
 			'enable_ga_tracking'     => ! empty( $input['enable_ga_tracking'] ),
 		];
@@ -231,23 +237,29 @@ final class SettingsPage implements ServiceInterface {
 	 */
 	public function render_text_field( array $args ): void {
 		$key         = (string) $args['key'];
+		$field_id    = $this->get_field_id( $key );
 		$value       = (string) $this->settings->get( $key );
 		$description = isset( $args['description'] ) ? (string) $args['description'] : '';
 		$inputmode   = isset( $args['inputmode'] ) ? (string) $args['inputmode'] : 'text';
 		$required    = ! empty( $args['required'] );
+		$help_id     = '' !== $description ? $field_id . '-description' : '';
 		?>
 		<input
+			id="<?php echo esc_attr( $field_id ); ?>"
 			type="text"
 			class="regular-text"
 			name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>"
 			value="<?php echo esc_attr( $value ); ?>"
 			inputmode="<?php echo esc_attr( $inputmode ); ?>"
+			<?php if ( '' !== $help_id ) : ?>
+				aria-describedby="<?php echo esc_attr( $help_id ); ?>"
+			<?php endif; ?>
 			<?php if ( $required ) : ?>
 				required
 			<?php endif; ?>
 		/>
 		<?php if ( '' !== $description ) : ?>
-			<p class="description"><?php echo esc_html( $description ); ?></p>
+			<p id="<?php echo esc_attr( $help_id ); ?>" class="description"><?php echo esc_html( $description ); ?></p>
 		<?php endif; ?>
 		<?php
 	}
@@ -259,16 +271,22 @@ final class SettingsPage implements ServiceInterface {
 	 */
 	public function render_textarea_field( array $args ): void {
 		$key         = (string) $args['key'];
+		$field_id    = $this->get_field_id( $key );
 		$value       = (string) $this->settings->get( $key );
 		$description = isset( $args['description'] ) ? (string) $args['description'] : '';
+		$help_id     = '' !== $description ? $field_id . '-description' : '';
 		?>
 		<textarea
+			id="<?php echo esc_attr( $field_id ); ?>"
 			class="large-text"
 			name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>"
 			rows="4"
+			<?php if ( '' !== $help_id ) : ?>
+				aria-describedby="<?php echo esc_attr( $help_id ); ?>"
+			<?php endif; ?>
 		><?php echo esc_textarea( $value ); ?></textarea>
 		<?php if ( '' !== $description ) : ?>
-			<p class="description"><?php echo esc_html( $description ); ?></p>
+			<p id="<?php echo esc_attr( $help_id ); ?>" class="description"><?php echo esc_html( $description ); ?></p>
 		<?php endif; ?>
 		<?php
 	}
@@ -280,11 +298,13 @@ final class SettingsPage implements ServiceInterface {
 	 */
 	public function render_checkbox_field( array $args ): void {
 		$key   = (string) $args['key'];
+		$field_id = $this->get_field_id( $key );
 		$value = (bool) $this->settings->get( $key );
 		$label = isset( $args['label'] ) ? (string) $args['label'] : '';
 		?>
 		<label>
 			<input
+				id="<?php echo esc_attr( $field_id ); ?>"
 				type="checkbox"
 				name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>"
 				value="1"
@@ -302,10 +322,11 @@ final class SettingsPage implements ServiceInterface {
 	 */
 	public function render_select_field( array $args ): void {
 		$key     = (string) $args['key'];
+		$field_id = $this->get_field_id( $key );
 		$value   = (string) $this->settings->get( $key );
 		$options = isset( $args['options'] ) && is_array( $args['options'] ) ? $args['options'] : [];
 		?>
-		<select name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>">
+		<select id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>">
 			<?php foreach ( $options as $option_value => $option_label ) : ?>
 				<option value="<?php echo esc_attr( (string) $option_value ); ?>" <?php selected( $value, $option_value ); ?>>
 					<?php echo esc_html( (string) $option_label ); ?>
@@ -313,5 +334,12 @@ final class SettingsPage implements ServiceInterface {
 			<?php endforeach; ?>
 		</select>
 		<?php
+	}
+
+	/**
+	 * Build a stable field ID for admin settings controls.
+	 */
+	private function get_field_id( string $key ): string {
+		return 'epdc-conversations-' . sanitize_html_class( $key );
 	}
 }

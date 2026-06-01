@@ -270,6 +270,7 @@ final class AnalyticsPage implements ServiceInterface {
 	 * Get the active range from the request.
 	 */
 	private function get_selected_range(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only admin filter parameter.
 		$range = isset( $_GET['range'] ) ? sanitize_key( wp_unslash( (string) $_GET['range'] ) ) : '7days';
 
 		if ( in_array( $range, [ 'today', '7days', '30days', 'all' ], true ) ) {

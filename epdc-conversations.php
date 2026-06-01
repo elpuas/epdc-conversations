@@ -4,7 +4,7 @@
  * Description: Lightweight WhatsApp conversion-focused plugin scaffold.
  * Version: 0.1.0
  * Requires at least: 6.6
- * Requires PHP: 8.3
+ * Requires PHP: 8.2
  * Author: ElPuas Digital Crafts
  * Author URI: https://elpuasdigitalcrafts.com
  * License: GPL-2.0-or-later
@@ -19,6 +19,10 @@ declare( strict_types=1 );
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
+}
+
+if ( ! defined( 'EPDC_CONVERSATIONS_VERSION' ) ) {
+	define( 'EPDC_CONVERSATIONS_VERSION', '0.1.0' );
 }
 
 $epdc_conversations_autoload = __DIR__ . '/vendor/autoload.php';

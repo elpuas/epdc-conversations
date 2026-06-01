@@ -62,7 +62,7 @@ final class ConversationsBlock implements ServiceInterface {
 		$normalized_attributes = [
 			'message'     => isset( $attributes['message'] ) ? sanitize_textarea_field( (string) $attributes['message'] ) : '',
 			'label'       => isset( $attributes['label'] ) ? sanitize_text_field( (string) $attributes['label'] ) : '',
-			'phoneNumber' => isset( $attributes['phoneNumber'] ) ? sanitize_text_field( (string) $attributes['phoneNumber'] ) : '',
+			'phoneNumber' => isset( $attributes['phoneNumber'] ) ? preg_replace( '/\D+/', '', (string) $attributes['phoneNumber'] ) : '',
 			'variant'     => isset( $attributes['variant'] ) ? sanitize_key( (string) $attributes['variant'] ) : 'default',
 			'showIcon'    => ! isset( $attributes['showIcon'] ) || (bool) $attributes['showIcon'],
 			'newTab'      => isset( $attributes['newTab'] ) && (bool) $attributes['newTab'],
