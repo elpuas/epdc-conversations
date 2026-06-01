@@ -45,6 +45,10 @@ final class Renderer implements ServiceInterface {
 			return;
 		}
 
+		if ( ! $this->should_render_floating_button() ) {
+			return;
+		}
+
 		echo $this->render_button( [], true, 'floating' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
@@ -227,6 +231,32 @@ final class Renderer implements ServiceInterface {
 		}
 
 		return ! empty( $args['classes'] );
+	}
+
+	/**
+	 * Determine whether the global floating button should render.
+	 */
+	private function should_render_floating_button(): bool {
+		$should_render = true;
+
+		if ( is_singular() ) {
+			$post_id = get_queried_object_id();
+
+			if ( $post_id > 0 ) {
+				$post_content = (string) get_post_field( 'post_content', $post_id );
+
+				if ( '' !== $post_content && has_block( 'epdc/conversations', $post_content ) ) {
+					$should_render = false;
+				}
+			}
+		}
+
+		/**
+		 * Filter whether the global floating button should render.
+		 *
+		 * @param bool $should_render Whether the floating button should render.
+		 */
+		return (bool) apply_filters( 'epdc_conversations_should_render_floating_button', $should_render );
 	}
 
 	/**

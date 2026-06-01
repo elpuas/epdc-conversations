@@ -39,5 +39,7 @@
       "default": false
     }
   },
-  "editorScript": "epdc-conversations-block-editor"
+  "editorScript": "epdc-conversations-block-editor",
+  "style": "epdc-conversations-frontend",
+  "editorStyle": "epdc-conversations-frontend"
 }

@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace EPDC\Conversations\Blocks;
 
 use EPDC\Conversations\Frontend\Renderer;
+use EPDC\Conversations\Infrastructure\Assets;
 use EPDC\Conversations\Infrastructure\ServiceInterface;
 
 final class ConversationsBlock implements ServiceInterface {
@@ -45,7 +46,9 @@ final class ConversationsBlock implements ServiceInterface {
 		register_block_type(
 			$base_path,
 			[
+				'editor_style'    => Assets::STYLE_HANDLE,
 				'render_callback' => [ $this, 'render_callback' ],
+				'style'           => Assets::STYLE_HANDLE,
 			]
 		);
 	}
