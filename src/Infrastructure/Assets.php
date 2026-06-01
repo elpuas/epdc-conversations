@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace EPDC\Conversations\Infrastructure;
 
+use EPDC\Conversations\Tracking\TrackingService;
+
 final class Assets implements ServiceInterface {
 	public const STYLE_HANDLE  = 'epdc-conversations-frontend';
 	public const SCRIPT_HANDLE = 'epdc-conversations-frontend';
@@ -20,8 +22,13 @@ final class Assets implements ServiceInterface {
 	 */
 	private string $plugin_file;
 
-	public function __construct( string $plugin_file ) {
-		$this->plugin_file = $plugin_file;
+	private Settings $settings;
+	private TrackingService $tracking_service;
+
+	public function __construct( string $plugin_file, Settings $settings, TrackingService $tracking_service ) {
+		$this->plugin_file      = $plugin_file;
+		$this->settings         = $settings;
+		$this->tracking_service = $tracking_service;
 	}
 
 	public function register(): void {
@@ -47,6 +54,14 @@ final class Assets implements ServiceInterface {
 			[],
 			(string) filemtime( plugin_dir_path( $this->plugin_file ) . 'assets/js/frontend.js' ),
 			true
+		);
+
+		$frontend_config = $this->tracking_service->get_frontend_config( ! empty( $this->settings->get( 'enable_ga_tracking' ) ) );
+
+		wp_localize_script(
+			self::SCRIPT_HANDLE,
+			'epdcConversationsTracking',
+			$frontend_config
 		);
 	}
 }

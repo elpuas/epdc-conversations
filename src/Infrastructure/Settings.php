@@ -28,6 +28,7 @@ final class Settings {
 			'button_position'        => 'bottom-right',
 			'button_label'           => __( 'Chat on WhatsApp', 'epdc-conversations' ),
 			'open_in_new_tab'        => true,
+			'enable_ga_tracking'     => false,
 		];
 	}
 

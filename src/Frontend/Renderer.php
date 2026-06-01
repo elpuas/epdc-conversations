@@ -13,17 +13,14 @@ use EPDC\Conversations\Infrastructure\Assets;
 use EPDC\Conversations\Infrastructure\ServiceInterface;
 use EPDC\Conversations\Infrastructure\Settings;
 use EPDC\Conversations\Messaging\MessageParser;
-use EPDC\Conversations\Tracking\TrackingService;
 
 final class Renderer implements ServiceInterface {
 	private Settings $settings;
 	private MessageParser $message_parser;
-	private TrackingService $tracking_service;
 
-	public function __construct( Settings $settings, MessageParser $message_parser, TrackingService $tracking_service ) {
+	public function __construct( Settings $settings, MessageParser $message_parser ) {
 		$this->settings         = $settings;
 		$this->message_parser   = $message_parser;
-		$this->tracking_service = $tracking_service;
 	}
 
 	public function register(): void {
@@ -93,8 +90,6 @@ final class Renderer implements ServiceInterface {
 
 		wp_enqueue_style( Assets::STYLE_HANDLE );
 		wp_enqueue_script( Assets::SCRIPT_HANDLE );
-
-		$this->tracking_service->register_placeholder_event( $is_floating ? 'floating_button_rendered' : $source . '_button_rendered' );
 
 		ob_start();
 		require dirname( __DIR__, 2 ) . '/templates/frontend-button.php';

@@ -34,13 +34,14 @@ final class Plugin {
 		$settings         = new Settings();
 		$message_parser   = new MessageParser();
 		$tracking_service = new TrackingService();
-		$renderer         = new Renderer( $settings, $message_parser, $tracking_service );
+		$renderer         = new Renderer( $settings, $message_parser );
 
 		$this->plugin_file = $plugin_file;
 		$this->services    = [
 			new I18n( $this->plugin_file ),
-			new Assets( $this->plugin_file ),
+			new Assets( $this->plugin_file, $settings, $tracking_service ),
 			new SettingsPage( $settings ),
+			$tracking_service,
 			$renderer,
 			new ConversationsBlock( $this->plugin_file, $renderer ),
 		];
