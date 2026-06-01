@@ -128,6 +128,15 @@ final class SettingsPage implements ServiceInterface {
 				'label' => esc_html__( 'Open WhatsApp in a new browser tab.', 'epdc-conversations' ),
 			]
 		);
+
+		$this->register_field(
+			'enable_ga_tracking',
+			esc_html__( 'Enable Google Analytics tracking', 'epdc-conversations' ),
+			'render_checkbox_field',
+			[
+				'label' => esc_html__( 'Forward WhatsApp click events to Google Analytics 4 when gtag is available.', 'epdc-conversations' ),
+			]
+		);
 	}
 
 	public function render_general_section(): void {
@@ -162,6 +171,7 @@ final class SettingsPage implements ServiceInterface {
 			'button_position'        => $position,
 			'button_label'           => sanitize_text_field( (string) ( $input['button_label'] ?? '' ) ) ?: (string) $defaults['button_label'],
 			'open_in_new_tab'        => ! empty( $input['open_in_new_tab'] ),
+			'enable_ga_tracking'     => ! empty( $input['enable_ga_tracking'] ),
 		];
 	}
 

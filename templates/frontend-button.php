@@ -25,6 +25,7 @@ $epdc_conversations_rel    = ! empty( $args['new_tab'] ) ? 'noopener noreferrer'
 		class="epdc-conversations__link"
 		href="<?php echo esc_url( (string) $args['url'] ); ?>"
 		aria-label="<?php echo esc_attr( (string) $args['aria_label'] ); ?>"
+		data-epdc-conversations-event="whatsapp_click"
 		data-epdc-conversations-source="<?php echo esc_attr( (string) ( $args['source'] ?? 'unknown' ) ); ?>"
 		data-epdc-conversations-variant="<?php echo esc_attr( (string) ( $args['variant'] ?? 'default' ) ); ?>"
 		<?php if ( '' !== $epdc_conversations_target ) : ?>
