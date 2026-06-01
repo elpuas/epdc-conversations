@@ -10,6 +10,9 @@ declare( strict_types=1 );
 namespace EPDC\Conversations\Admin;
 
 final class AnalyticsRepository {
+	private const CACHE_GROUP = 'epdc_conversations_analytics';
+	private const CACHE_KEY_VERSION = 'epdc_conversations_analytics_cache_version';
+
 	/**
 	 * Fetch dashboard metrics.
 	 *
@@ -24,22 +27,31 @@ final class AnalyticsRepository {
 		$last_seven_days = gmdate( 'Y-m-d H:i:s', $current_time - ( 7 * DAY_IN_SECONDS ) );
 		$last_thirty     = gmdate( 'Y-m-d H:i:s', $current_time - ( 30 * DAY_IN_SECONDS ) );
 
-		$sql = $wpdb->prepare(
-			"SELECT
-				COUNT(*) AS total_clicks,
-				SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_today,
-				SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_last_7_days,
-				SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_last_30_days
-			FROM {$table_name}
-			WHERE event_type = %s",
-			$today_start,
-			$last_seven_days,
-			$last_thirty,
-			'whatsapp_click'
-		);
+		$cache_key = 'metrics:' . $this->get_cache_version() . ':' . md5( implode( '|', [ $today_start, $last_seven_days, $last_thirty ] ) );
+		$result    = wp_cache_get( $cache_key, self::CACHE_GROUP );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
-		$result = $wpdb->get_row( $sql, ARRAY_A );
+		if ( false === $result ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table query for plugin-owned data.
+			$result = $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT
+						COUNT(*) AS total_clicks,
+						SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_today,
+						SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_last_7_days,
+						SUM(CASE WHEN created_at >= %s THEN 1 ELSE 0 END) AS clicks_last_30_days
+					FROM %i
+					WHERE event_type = %s',
+					$today_start,
+					$last_seven_days,
+					$last_thirty,
+					$table_name,
+					'whatsapp_click'
+				),
+				ARRAY_A
+			);
+
+			wp_cache_set( $cache_key, $result, self::CACHE_GROUP, MINUTE_IN_SECONDS );
+		}
 
 		$metrics = [
 			'total_clicks'        => is_array( $result ) && isset( $result['total_clicks'] ) ? (int) $result['total_clicks'] : 0,
@@ -95,44 +107,60 @@ final class AnalyticsRepository {
 		$event_type = isset( $args['event_type'] ) ? sanitize_key( (string) $args['event_type'] ) : 'whatsapp_click';
 		$start_date = isset( $args['start_date'] ) ? (string) $args['start_date'] : '';
 
+		$cache_key = 'top-pages:' . $this->get_cache_version() . ':' . md5( wp_json_encode( [ $event_type, $start_date, $limit ] ) );
+		$results   = wp_cache_get( $cache_key, self::CACHE_GROUP );
+
+		if ( false !== $results && is_array( $results ) ) {
+			return $results;
+		}
+
 		if ( '' !== $start_date ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
-			$sql = $wpdb->prepare(
-				"SELECT
-					page_url,
-					COUNT(*) AS total_clicks,
-					MAX(created_at) AS last_interaction
-				FROM {$table_name}
-				WHERE event_type = %s
-					AND page_url <> ''
-					AND created_at >= %s
-				GROUP BY page_url
-				ORDER BY total_clicks DESC, last_interaction DESC
-				LIMIT %d",
-				$event_type,
-				$start_date,
-				$limit
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table query for plugin-owned data.
+			$results = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT
+						page_url,
+						COUNT(*) AS total_clicks,
+						MAX(created_at) AS last_interaction
+					FROM %i
+					WHERE event_type = %s
+						AND page_url <> \'\'
+						AND created_at >= %s
+					GROUP BY page_url
+					ORDER BY total_clicks DESC, last_interaction DESC
+					LIMIT %d',
+					$table_name,
+					$event_type,
+					$start_date,
+					$limit
+				),
+				ARRAY_A
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
-			$sql = $wpdb->prepare(
-				"SELECT
-					page_url,
-					COUNT(*) AS total_clicks,
-					MAX(created_at) AS last_interaction
-				FROM {$table_name}
-				WHERE event_type = %s
-					AND page_url <> ''
-				GROUP BY page_url
-				ORDER BY total_clicks DESC, last_interaction DESC
-				LIMIT %d",
-				$event_type,
-				$limit
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table query for plugin-owned data.
+			$results = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT
+						page_url,
+						COUNT(*) AS total_clicks,
+						MAX(created_at) AS last_interaction
+					FROM %i
+					WHERE event_type = %s
+						AND page_url <> \'\'
+					GROUP BY page_url
+					ORDER BY total_clicks DESC, last_interaction DESC
+					LIMIT %d',
+					$table_name,
+					$event_type,
+					$limit
+				),
+				ARRAY_A
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		if ( is_array( $results ) ) {
+			wp_cache_set( $cache_key, $results, self::CACHE_GROUP, MINUTE_IN_SECONDS );
+		}
 
 		return is_array( $results ) ? $results : [];
 	}
@@ -169,48 +197,80 @@ final class AnalyticsRepository {
 		$event_type = isset( $args['event_type'] ) ? sanitize_key( (string) $args['event_type'] ) : 'whatsapp_click';
 		$start_date = isset( $args['start_date'] ) ? (string) $args['start_date'] : '';
 
+		$cache_key = 'recent-events:' . $this->get_cache_version() . ':' . md5( wp_json_encode( [ $event_type, $start_date, $limit ] ) );
+		$results   = wp_cache_get( $cache_key, self::CACHE_GROUP );
+
+		if ( false !== $results && is_array( $results ) ) {
+			return $results;
+		}
+
 		if ( '' !== $start_date ) {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
-			$sql = $wpdb->prepare(
-				"SELECT
-					created_at,
-					event_type,
-					page_url,
-					device_type,
-					utm_source,
-					session_id
-				FROM {$table_name}
-				WHERE event_type = %s
-					AND created_at >= %s
-				ORDER BY created_at DESC, id DESC
-				LIMIT %d",
-				$event_type,
-				$start_date,
-				$limit
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table query for plugin-owned data.
+			$results = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT
+						created_at,
+						event_type,
+						page_url,
+						device_type,
+						utm_source,
+						session_id
+					FROM %i
+					WHERE event_type = %s
+						AND created_at >= %s
+					ORDER BY created_at DESC, id DESC
+					LIMIT %d',
+					$table_name,
+					$event_type,
+					$start_date,
+					$limit
+				),
+				ARRAY_A
 			);
 		} else {
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix.
-			$sql = $wpdb->prepare(
-				"SELECT
-					created_at,
-					event_type,
-					page_url,
-					device_type,
-					utm_source,
-					session_id
-				FROM {$table_name}
-				WHERE event_type = %s
-				ORDER BY created_at DESC, id DESC
-				LIMIT %d",
-				$event_type,
-				$limit
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table query for plugin-owned data.
+			$results = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT
+						created_at,
+						event_type,
+						page_url,
+						device_type,
+						utm_source,
+						session_id
+					FROM %i
+					WHERE event_type = %s
+					ORDER BY created_at DESC, id DESC
+					LIMIT %d',
+					$table_name,
+					$event_type,
+					$limit
+				),
+				ARRAY_A
 			);
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query uses $wpdb->prepare() above.
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		if ( is_array( $results ) ) {
+			wp_cache_set( $cache_key, $results, self::CACHE_GROUP, MINUTE_IN_SECONDS );
+		}
 
 		return is_array( $results ) ? $results : [];
+	}
+
+	/**
+	 * Flush analytics query caches after new tracking data is stored.
+	 */
+	public static function flush_cache(): void {
+		update_option( self::CACHE_KEY_VERSION, (string) microtime( true ), false );
+	}
+
+	/**
+	 * Get the active analytics cache version.
+	 */
+	private function get_cache_version(): string {
+		$cache_version = get_option( self::CACHE_KEY_VERSION, '1' );
+
+		return is_string( $cache_version ) && '' !== $cache_version ? $cache_version : '1';
 	}
 
 	/**

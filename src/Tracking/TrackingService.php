@@ -211,7 +211,7 @@ final class TrackingService implements ServiceInterface {
 			'utm_medium'   => $this->sanitize_utm_value( $payload['utm_medium'] ?? '' ),
 			'utm_campaign' => $this->sanitize_utm_value( $payload['utm_campaign'] ?? '' ),
 			'device_type'  => $this->sanitize_device_type( (string) ( $payload['device_type'] ?? '' ) ),
-			'user_agent'   => substr( sanitize_text_field( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ), 0, 255 ),
+			'user_agent'   => substr( sanitize_text_field( wp_unslash( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ) ), 0, 255 ),
 			'ip_hash'      => '' !== $ip_address ? hash( 'sha256', $ip_address ) : '',
 		];
 
@@ -223,6 +223,7 @@ final class TrackingService implements ServiceInterface {
 		 */
 		$data = apply_filters( 'epdc_conversations_event_insertion_data', $data, $payload );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom analytics table insert for plugin-owned data.
 		$inserted = $wpdb->insert(
 			$table_name,
 			$data,
@@ -243,6 +244,10 @@ final class TrackingService implements ServiceInterface {
 
 		if ( false === $inserted ) {
 			return 0;
+		}
+
+		if ( class_exists( '\EPDC\Conversations\Admin\AnalyticsRepository' ) && method_exists( '\EPDC\Conversations\Admin\AnalyticsRepository', 'flush_cache' ) ) {
+			\EPDC\Conversations\Admin\AnalyticsRepository::flush_cache();
 		}
 
 		return (int) $wpdb->insert_id;
