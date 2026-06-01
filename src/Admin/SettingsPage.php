@@ -25,9 +25,19 @@ final class SettingsPage implements ServiceInterface {
 	}
 
 	public function register_menu(): void {
-		add_options_page(
+		add_menu_page(
 			esc_html__( 'EPDC Conversations', 'epdc-conversations' ),
 			esc_html__( 'EPDC Conversations', 'epdc-conversations' ),
+			'manage_options',
+			'epdc-conversations',
+			[ $this, 'render_page' ],
+			'dashicons-format-chat'
+		);
+
+		add_submenu_page(
+			'epdc-conversations',
+			esc_html__( 'Settings', 'epdc-conversations' ),
+			esc_html__( 'Settings', 'epdc-conversations' ),
 			'manage_options',
 			'epdc-conversations',
 			[ $this, 'render_page' ]

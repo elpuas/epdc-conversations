@@ -9,6 +9,8 @@ declare( strict_types=1 );
 
 namespace EPDC\Conversations\Infrastructure;
 
+use EPDC\Conversations\Admin\AnalyticsPage;
+use EPDC\Conversations\Admin\AnalyticsRepository;
 use EPDC\Conversations\Admin\SettingsPage;
 use EPDC\Conversations\Blocks\ConversationsBlock;
 use EPDC\Conversations\Frontend\Renderer;
@@ -34,6 +36,7 @@ final class Plugin {
 		$settings         = new Settings();
 		$message_parser   = new MessageParser();
 		$tracking_service = new TrackingService();
+		$analytics_repository = new AnalyticsRepository();
 		$renderer         = new Renderer( $settings, $message_parser );
 
 		$this->plugin_file = $plugin_file;
@@ -41,6 +44,7 @@ final class Plugin {
 			new I18n( $this->plugin_file ),
 			new Assets( $this->plugin_file, $settings, $tracking_service ),
 			new SettingsPage( $settings ),
+			new AnalyticsPage( $analytics_repository ),
 			$tracking_service,
 			$renderer,
 			new ConversationsBlock( $this->plugin_file, $renderer ),
