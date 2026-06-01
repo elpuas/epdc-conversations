@@ -28,6 +28,25 @@
 	max-inline-size: 100%;
 }
 
+.epdc-conversations--variant-inline .epdc-conversations__link {
+	padding-block: 0.625rem;
+	padding-inline: 0.875rem;
+	border-radius: 0.75rem;
+	box-shadow: none;
+}
+
+.epdc-conversations--variant-compact .epdc-conversations__link {
+	gap: 0.5rem;
+	min-block-size: 2.75rem;
+	padding: 0.625rem 0.875rem;
+	font-size: 0.9375rem;
+}
+
+.epdc-conversations--variant-compact .epdc-conversations__icon {
+	inline-size: 1.125rem;
+	block-size: 1.125rem;
+}
+
 .epdc-conversations__link {
 	display: inline-flex;
 	align-items: center;

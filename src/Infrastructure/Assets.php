@@ -25,24 +25,27 @@ final class Assets implements ServiceInterface {
 	}
 
 	public function register(): void {
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
+		add_action( 'init', [ $this, 'register_assets' ] );
 	}
 
-	public function enqueue_frontend_assets(): void {
+	/**
+	 * Register shared frontend and editor assets.
+	 */
+	public function register_assets(): void {
 		$base_url = plugin_dir_url( $this->plugin_file ) . 'assets/';
 
 		wp_register_style(
 			self::STYLE_HANDLE,
 			$base_url . 'css/frontend.css',
 			[],
-			'0.1.0'
+			(string) filemtime( plugin_dir_path( $this->plugin_file ) . 'assets/css/frontend.css' )
 		);
 
 		wp_register_script(
 			self::SCRIPT_HANDLE,
 			$base_url . 'js/frontend.js',
 			[],
-			'0.1.0',
+			(string) filemtime( plugin_dir_path( $this->plugin_file ) . 'assets/js/frontend.js' ),
 			true
 		);
 	}

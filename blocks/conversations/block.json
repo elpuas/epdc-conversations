@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "epdc/conversations",
+  "version": "0.1.0",
+  "title": "EPDC Conversations",
+  "category": "widgets",
+  "icon": "whatsapp",
+  "description": "Render a WhatsApp conversion CTA.",
+  "keywords": ["whatsapp", "conversation", "cta"],
+  "textdomain": "epdc-conversations",
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  },
+  "attributes": {
+    "message": {
+      "type": "string",
+      "default": ""
+    },
+    "label": {
+      "type": "string",
+      "default": ""
+    },
+    "phoneNumber": {
+      "type": "string",
+      "default": ""
+    },
+    "variant": {
+      "type": "string",
+      "default": "default"
+    },
+    "showIcon": {
+      "type": "boolean",
+      "default": true
+    },
+    "newTab": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "editorScript": "epdc-conversations-block-editor",
+  "style": "epdc-conversations-frontend",
+  "editorStyle": "epdc-conversations-frontend"
+}
