@@ -30,6 +30,10 @@
       "type": "string",
       "default": "default"
     },
+    "size": {
+      "type": "string",
+      "default": "medium"
+    },
     "showIcon": {
       "type": "boolean",
       "default": true

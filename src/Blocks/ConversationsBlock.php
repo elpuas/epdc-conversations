@@ -64,12 +64,25 @@ final class ConversationsBlock implements ServiceInterface {
 			'label'       => isset( $attributes['label'] ) ? sanitize_text_field( (string) $attributes['label'] ) : '',
 			'phoneNumber' => isset( $attributes['phoneNumber'] ) ? preg_replace( '/\D+/', '', (string) $attributes['phoneNumber'] ) : '',
 			'variant'     => isset( $attributes['variant'] ) ? sanitize_key( (string) $attributes['variant'] ) : 'default',
+			'size'        => isset( $attributes['size'] ) ? sanitize_key( (string) $attributes['size'] ) : 'medium',
 			'showIcon'    => ! isset( $attributes['showIcon'] ) || (bool) $attributes['showIcon'],
 			'newTab'      => isset( $attributes['newTab'] ) && (bool) $attributes['newTab'],
 		];
 
-		if ( ! in_array( $normalized_attributes['variant'], [ 'default', 'inline', 'compact' ], true ) ) {
+		if ( 'inline' === $normalized_attributes['variant'] ) {
+			$normalized_attributes['variant'] = 'compact';
+		}
+
+		if ( ! in_array( $normalized_attributes['variant'], [ 'default', 'compact', 'icon-only' ], true ) ) {
 			$normalized_attributes['variant'] = 'default';
+		}
+
+		if ( ! in_array( $normalized_attributes['size'], [ 'small', 'medium', 'large' ], true ) ) {
+			$normalized_attributes['size'] = 'medium';
+		}
+
+		if ( 'icon-only' === $normalized_attributes['variant'] ) {
+			$normalized_attributes['showIcon'] = true;
 		}
 
 		$button_markup = $this->renderer->render_block( $normalized_attributes );
