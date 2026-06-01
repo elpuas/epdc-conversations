@@ -27,6 +27,9 @@ final class Settings {
 			'show_on_desktop'        => true,
 			'button_position'        => 'bottom-right',
 			'button_label'           => __( 'Chat on WhatsApp', 'epdc-conversations' ),
+			'button_variant'         => 'default',
+			'button_size'            => 'medium',
+			'show_button_icon'       => true,
 			'open_in_new_tab'        => true,
 			'enable_ga_tracking'     => false,
 		];

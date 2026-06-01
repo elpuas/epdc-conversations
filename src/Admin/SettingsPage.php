@@ -131,6 +131,43 @@ final class SettingsPage implements ServiceInterface {
 		);
 
 		$this->register_field(
+			'button_variant',
+			esc_html__( 'Button variant', 'epdc-conversations' ),
+			'render_select_field',
+			[
+				'options' => [
+					'default'   => esc_html__( 'Default', 'epdc-conversations' ),
+					'compact'   => esc_html__( 'Compact', 'epdc-conversations' ),
+					'icon-only' => esc_html__( 'Icon only', 'epdc-conversations' ),
+				],
+				'description' => esc_html__( 'Choose the default visual style for the floating CTA.', 'epdc-conversations' ),
+			]
+		);
+
+		$this->register_field(
+			'button_size',
+			esc_html__( 'Button size', 'epdc-conversations' ),
+			'render_select_field',
+			[
+				'options' => [
+					'small'  => esc_html__( 'Small', 'epdc-conversations' ),
+					'medium' => esc_html__( 'Medium', 'epdc-conversations' ),
+					'large'  => esc_html__( 'Large', 'epdc-conversations' ),
+				],
+				'description' => esc_html__( 'Choose the default size for the floating CTA.', 'epdc-conversations' ),
+			]
+		);
+
+		$this->register_field(
+			'show_button_icon',
+			esc_html__( 'Show button icon', 'epdc-conversations' ),
+			'render_checkbox_field',
+			[
+				'label' => esc_html__( 'Display the WhatsApp icon inside the floating button.', 'epdc-conversations' ),
+			]
+		);
+
+		$this->register_field(
 			'open_in_new_tab',
 			esc_html__( 'Open in new tab', 'epdc-conversations' ),
 			'render_checkbox_field',
@@ -167,9 +204,19 @@ final class SettingsPage implements ServiceInterface {
 		}
 
 		$position = isset( $input['button_position'] ) ? sanitize_key( (string) $input['button_position'] ) : 'bottom-right';
+		$variant  = isset( $input['button_variant'] ) ? sanitize_key( (string) $input['button_variant'] ) : 'default';
+		$size     = isset( $input['button_size'] ) ? sanitize_key( (string) $input['button_size'] ) : 'medium';
 
 		if ( ! in_array( $position, [ 'bottom-right', 'bottom-left' ], true ) ) {
 			$position = 'bottom-right';
+		}
+
+		if ( ! in_array( $variant, [ 'default', 'compact', 'icon-only' ], true ) ) {
+			$variant = 'default';
+		}
+
+		if ( ! in_array( $size, [ 'small', 'medium', 'large' ], true ) ) {
+			$size = 'medium';
 		}
 
 		$button_label = sanitize_text_field( (string) ( $input['button_label'] ?? '' ) );
@@ -186,6 +233,9 @@ final class SettingsPage implements ServiceInterface {
 			'show_on_desktop'        => ! empty( $input['show_on_desktop'] ),
 			'button_position'        => $position,
 			'button_label'           => $button_label,
+			'button_variant'         => $variant,
+			'button_size'            => $size,
+			'show_button_icon'       => ! empty( $input['show_button_icon'] ),
 			'open_in_new_tab'        => ! empty( $input['open_in_new_tab'] ),
 			'enable_ga_tracking'     => ! empty( $input['enable_ga_tracking'] ),
 		];
@@ -321,18 +371,29 @@ final class SettingsPage implements ServiceInterface {
 	 * @param array<string, mixed> $args Field arguments.
 	 */
 	public function render_select_field( array $args ): void {
-		$key     = (string) $args['key'];
-		$field_id = $this->get_field_id( $key );
-		$value   = (string) $this->settings->get( $key );
-		$options = isset( $args['options'] ) && is_array( $args['options'] ) ? $args['options'] : [];
+		$key         = (string) $args['key'];
+		$field_id    = $this->get_field_id( $key );
+		$value       = (string) $this->settings->get( $key );
+		$options     = isset( $args['options'] ) && is_array( $args['options'] ) ? $args['options'] : [];
+		$description = isset( $args['description'] ) ? (string) $args['description'] : '';
+		$help_id     = '' !== $description ? $field_id . '-description' : '';
 		?>
-		<select id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>">
+		<select
+			id="<?php echo esc_attr( $field_id ); ?>"
+			name="<?php echo esc_attr( Settings::OPTION_NAME . '[' . $key . ']' ); ?>"
+			<?php if ( '' !== $help_id ) : ?>
+				aria-describedby="<?php echo esc_attr( $help_id ); ?>"
+			<?php endif; ?>
+		>
 			<?php foreach ( $options as $option_value => $option_label ) : ?>
 				<option value="<?php echo esc_attr( (string) $option_value ); ?>" <?php selected( $value, $option_value ); ?>>
 					<?php echo esc_html( (string) $option_label ); ?>
 				</option>
 			<?php endforeach; ?>
 		</select>
+		<?php if ( '' !== $description ) : ?>
+			<p id="<?php echo esc_attr( $help_id ); ?>" class="description"><?php echo esc_html( $description ); ?></p>
+		<?php endif; ?>
 		<?php
 	}
 

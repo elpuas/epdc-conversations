@@ -19,6 +19,10 @@ $epdc_conversations_class_name = isset( $args['classes'] ) && is_array( $args['c
 
 $epdc_conversations_target = ! empty( $args['new_tab'] ) ? '_blank' : '';
 $epdc_conversations_rel    = ! empty( $args['new_tab'] ) ? 'noopener noreferrer' : '';
+$epdc_conversations_is_icon_only = isset( $args['variant'] ) && 'icon-only' === $args['variant'];
+$epdc_conversations_label_class  = $epdc_conversations_is_icon_only
+	? 'epdc-conversations__label epdc-conversations__label--screen-reader'
+	: 'epdc-conversations__label';
 ?>
 <div class="<?php echo esc_attr( $epdc_conversations_class_name ); ?>" data-epdc-conversations>
 	<a
@@ -35,12 +39,11 @@ $epdc_conversations_rel    = ! empty( $args['new_tab'] ) ? 'noopener noreferrer'
 	>
 		<?php if ( ! isset( $args['show_icon'] ) || ! empty( $args['show_icon'] ) ) : ?>
 			<span class="epdc-conversations__icon" aria-hidden="true">
-				<svg viewBox="0 0 32 32" focusable="false" role="img" aria-hidden="true">
-					<path fill="currentColor" d="M19.11 17.38c-.29-.15-1.73-.85-2-.95-.27-.1-.47-.15-.67.15-.2.29-.77.95-.94 1.15-.17.19-.35.22-.64.07-.29-.15-1.24-.45-2.36-1.43-.88-.79-1.47-1.76-1.64-2.06-.17-.29-.02-.45.13-.6.13-.13.29-.35.44-.52.15-.17.2-.29.3-.49.1-.19.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.19 0-.52.07-.79.37-.27.29-1.04 1.02-1.04 2.5s1.07 2.9 1.22 3.1c.15.19 2.1 3.21 5.08 4.5.71.31 1.27.49 1.7.63.71.23 1.35.2 1.86.12.57-.08 1.73-.71 1.98-1.4.24-.69.24-1.28.17-1.4-.07-.12-.27-.2-.57-.35Z"/>
-					<path fill="currentColor" d="M16.01 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.25.59 4.46 1.7 6.4L3.2 28.8l6.56-1.68a12.76 12.76 0 0 0 6.25 1.62c7.06 0 12.79-5.73 12.79-12.79S23.07 3.2 16.01 3.2Zm0 23.36c-1.95 0-3.87-.52-5.54-1.5l-.4-.24-3.89.99 1.03-3.79-.26-.39a10.55 10.55 0 0 1-1.63-5.68c0-5.86 4.78-10.63 10.69-10.63 2.84 0 5.5 1.11 7.51 3.12a10.55 10.55 0 0 1 3.12 7.51c0 5.88-4.78 10.61-10.63 10.61Z"/>
+				<svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+					<path fill="currentColor" d="M12 2.25a9.77 9.77 0 0 0-8.3 14.92L2.25 21.75l4.7-1.39A9.75 9.75 0 1 0 12 2.25Zm0 17.73a7.92 7.92 0 0 1-4.04-1.11l-.29-.17-2.79.82.91-2.72-.19-.3A7.92 7.92 0 1 1 12 19.98Zm4.34-5.96c-.24-.12-1.44-.71-1.66-.79-.22-.08-.38-.12-.54.12-.17.24-.63.79-.77.95-.14.16-.29.18-.53.06-.24-.12-1.01-.37-1.92-1.17-.71-.63-1.19-1.41-1.33-1.64-.14-.24-.01-.37.11-.49.11-.11.24-.29.36-.43.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.43-.06-.12-.54-1.3-.74-1.79-.2-.47-.4-.41-.54-.41l-.46-.01c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2 0 1.18.86 2.31.98 2.47.12.15 1.68 2.57 4.06 3.6.57.25 1.02.4 1.37.51.58.18 1.09.16 1.5.1.46-.07 1.44-.59 1.64-1.15.2-.57.2-1.06.14-1.16-.06-.1-.22-.16-.46-.28Z"/>
 				</svg>
 			</span>
 		<?php endif; ?>
-		<span class="epdc-conversations__label"><?php echo esc_html( (string) $args['label'] ); ?></span>
+		<span class="<?php echo esc_attr( $epdc_conversations_label_class ); ?>"><?php echo esc_html( (string) $args['label'] ); ?></span>
 	</a>
 </div>

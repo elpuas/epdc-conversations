@@ -52,16 +52,32 @@
 							value: attributes.variant || 'default',
 							options: [
 								{ label: __('Default', 'epdc-conversations'), value: 'default' },
-								{ label: __('Inline', 'epdc-conversations'), value: 'inline' },
-								{ label: __('Compact', 'epdc-conversations'), value: 'compact' }
+								{ label: __('Compact', 'epdc-conversations'), value: 'compact' },
+								{ label: __('Icon Only', 'epdc-conversations'), value: 'icon-only' }
 							],
 							onChange: function (value) {
 								setAttributes({ variant: value });
 							}
 						}),
+						createElement(SelectControl, {
+							label: __('Button Size', 'epdc-conversations'),
+							value: attributes.size || 'medium',
+							options: [
+								{ label: __('Small', 'epdc-conversations'), value: 'small' },
+								{ label: __('Medium', 'epdc-conversations'), value: 'medium' },
+								{ label: __('Large', 'epdc-conversations'), value: 'large' }
+							],
+							onChange: function (value) {
+								setAttributes({ size: value });
+							}
+						}),
 						createElement(ToggleControl, {
 							label: __('Show Icon', 'epdc-conversations'),
-							checked: attributes.showIcon !== false,
+							checked: attributes.variant === 'icon-only' ? true : attributes.showIcon !== false,
+							disabled: attributes.variant === 'icon-only',
+							help: attributes.variant === 'icon-only'
+								? __('Icon-only buttons always display the WhatsApp icon.', 'epdc-conversations')
+								: undefined,
 							onChange: function (value) {
 								setAttributes({ showIcon: value });
 							}

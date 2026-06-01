@@ -61,6 +61,7 @@ final class Renderer implements ServiceInterface {
 				'label'        => '',
 				'phone_number' => '',
 				'variant'      => 'default',
+				'size'         => 'medium',
 				'show_icon'    => 'yes',
 				'new_tab'      => '',
 			],
@@ -73,6 +74,7 @@ final class Renderer implements ServiceInterface {
 			'label'       => sanitize_text_field( (string) $atts['label'] ),
 			'phoneNumber' => preg_replace( '/\D+/', '', (string) $atts['phone_number'] ) ?? '',
 			'variant'     => sanitize_key( (string) $atts['variant'] ),
+			'size'        => sanitize_key( (string) $atts['size'] ),
 			'showIcon'    => ! in_array( strtolower( (string) $atts['show_icon'] ), [ '0', 'false', 'no', 'off' ], true ),
 			'newTab'      => in_array( strtolower( (string) $atts['new_tab'] ), [ '1', 'true', 'yes', 'on' ], true ),
 		];
@@ -141,8 +143,8 @@ final class Renderer implements ServiceInterface {
 		$message = (string) apply_filters( 'epdc_conversations_message', $message, $context );
 
 		$position = 'bottom-left' === $settings['button_position'] ? 'bottom-left' : 'bottom-right';
-		$variant  = isset( $overrides['variant'] ) ? (string) $overrides['variant'] : 'default';
-		$variant  = in_array( $variant, [ 'default', 'inline', 'compact' ], true ) ? $variant : 'default';
+		$variant  = $this->normalize_variant( isset( $overrides['variant'] ) ? (string) $overrides['variant'] : (string) $settings['button_variant'] );
+		$size     = $this->normalize_size( isset( $overrides['size'] ) ? (string) $overrides['size'] : (string) $settings['button_size'] );
 
 		$label = isset( $overrides['label'] ) && '' !== trim( (string) $overrides['label'] )
 			? (string) $overrides['label']
@@ -157,16 +159,24 @@ final class Renderer implements ServiceInterface {
 			? ! empty( $overrides['newTab'] )
 			: ! empty( $settings['open_in_new_tab'] );
 
-		$show_icon = ! ( array_key_exists( 'showIcon', $overrides ) && empty( $overrides['showIcon'] ) );
+		$show_icon = array_key_exists( 'showIcon', $overrides )
+			? ! empty( $overrides['showIcon'] )
+			: ! empty( $settings['show_button_icon'] );
+
+		if ( 'icon-only' === $variant ) {
+			$show_icon = true;
+		}
 
 		$classes = [
 			'epdc-conversations',
 			$is_floating ? 'epdc-conversations--floating' : 'epdc-conversations--inline',
 			'epdc-conversations--' . $position,
+			'epdc-conversations--variant-' . $variant,
+			'epdc-conversations--size-' . $size,
 		];
 
-		if ( ! $is_floating ) {
-			$classes[] = 'epdc-conversations--variant-' . $variant;
+		if ( ! $show_icon ) {
+			$classes[] = 'epdc-conversations--icon-hidden';
 		}
 
 		if ( empty( $settings['show_on_mobile'] ) ) {
@@ -200,6 +210,7 @@ final class Renderer implements ServiceInterface {
 			'new_tab'     => $new_tab,
 			'phone'       => $phone,
 			'position'    => $position,
+			'size'        => $size,
 			'show_icon'   => $show_icon,
 			'url'         => $this->build_whatsapp_url( $phone, $message ),
 		];
@@ -292,17 +303,19 @@ final class Renderer implements ServiceInterface {
 	 * @return array<string, mixed>
 	 */
 	private function normalize_button_args( array $args ): array {
-		$variant = isset( $args['variant'] ) ? sanitize_key( (string) $args['variant'] ) : 'default';
-
-		if ( ! in_array( $variant, [ 'default', 'inline', 'compact' ], true ) ) {
-			$variant = 'default';
-		}
+		$variant = $this->normalize_variant( isset( $args['variant'] ) ? (string) $args['variant'] : 'default' );
+		$size    = $this->normalize_size( isset( $args['size'] ) ? (string) $args['size'] : 'medium' );
 
 		$position = isset( $args['position'] ) && 'bottom-left' === $args['position'] ? 'bottom-left' : 'bottom-right';
 		$phone    = isset( $args['phone'] ) ? preg_replace( '/\D+/', '', (string) $args['phone'] ) : '';
 		$message  = isset( $args['message'] ) ? wp_strip_all_tags( (string) $args['message'] ) : '';
 		$label    = isset( $args['label'] ) ? sanitize_text_field( (string) $args['label'] ) : '';
 		$url      = isset( $args['url'] ) ? esc_url_raw( (string) $args['url'], [ 'https' ] ) : '';
+		$show_icon = ! isset( $args['show_icon'] ) || ! empty( $args['show_icon'] );
+
+		if ( 'icon-only' === $variant ) {
+			$show_icon = true;
+		}
 
 		return [
 			'aria_label'  => isset( $args['aria_label'] ) ? sanitize_text_field( (string) $args['aria_label'] ) : '',
@@ -313,10 +326,41 @@ final class Renderer implements ServiceInterface {
 			'new_tab'     => ! empty( $args['new_tab'] ),
 			'phone'       => $phone ?? '',
 			'position'    => $position,
-			'show_icon'   => ! isset( $args['show_icon'] ) || ! empty( $args['show_icon'] ),
+			'show_icon'   => $show_icon,
+			'size'        => $size,
 			'source'      => isset( $args['source'] ) ? sanitize_key( (string) $args['source'] ) : 'unknown',
 			'url'         => $url,
 			'variant'     => $variant,
 		];
+	}
+
+	/**
+	 * Normalize button variant values, preserving legacy aliases.
+	 */
+	private function normalize_variant( string $variant ): string {
+		$normalized_variant = sanitize_key( $variant );
+
+		if ( 'inline' === $normalized_variant ) {
+			return 'compact';
+		}
+
+		if ( in_array( $normalized_variant, [ 'default', 'compact', 'icon-only' ], true ) ) {
+			return $normalized_variant;
+		}
+
+		return 'default';
+	}
+
+	/**
+	 * Normalize button size values.
+	 */
+	private function normalize_size( string $size ): string {
+		$normalized_size = sanitize_key( $size );
+
+		if ( in_array( $normalized_size, [ 'small', 'medium', 'large' ], true ) ) {
+			return $normalized_size;
+		}
+
+		return 'medium';
 	}
 }
